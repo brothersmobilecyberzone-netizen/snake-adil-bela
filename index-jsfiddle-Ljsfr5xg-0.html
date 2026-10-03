@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html>
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JSFiddle Ljsfr5xg</title>
+
+  <style>
+    * {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: #111;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+.game {
+  width: 100%;
+  max-width: 450px;
+  margin: auto;
+  padding: 15px;
+}
+
+h1 {
+  margin: 5px 0 10px;
+  font-size: 28px;
+}
+
+.info {
+  display: flex;
+  justify-content: space-around;
+  font-size: 19px;
+  margin-bottom: 10px;
+}
+
+canvas {
+  width: 100%;
+  max-width: 400px;
+  height: auto;
+  background: #181818;
+  border: 4px solid #00ff66;
+  border-radius: 10px;
+  display: block;
+  margin: auto;
+}
+
+.controls {
+  margin-top: 15px;
+}
+
+button {
+  border: none;
+  border-radius: 12px;
+  background: #333;
+  color: white;
+  font-size: 28px;
+  padding: 10px 18px;
+  margin: 4px;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+button:active {
+  transform: scale(0.92);
+}
+
+.sound {
+  font-size: 17px;
+  background: #222;
+  margin-top: 10px;
+}
+
+.gameOver {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: -250px;
+  width: 330px;
+  padding: 20px;
+  background: #111;
+  border: 3px solid red;
+  border-radius: 15px;
+}
+
+.gameOver h2 {
+  color: red;
+  margin: 5px;
+}
+
+.gameOver p {
+  font-size: 20px;
+}
+
+.gameOver button {
+  background: #00aa55;
+  font-size: 18px;
+}
+  </style>
+
+  
+</head>
+<body>
+  <div class="game">
+  <h1>🐍 SNAKE ADIL BELA</h1>
+
+  <div class="info">
+    <span>🏆 Score: <b id="score">0</b></span>
+    <span>⭐ Best: <b id="best">0</b></span>
+  </div>
+
+  <canvas id="game" width="400" height="400"></canvas>
+
+  <div id="gameOver" class="gameOver">
+    <h2>💀 GAME OVER</h2>
+    <p>Your Score: <b id="finalScore">0</b></p>
+    <button onclick="restartGame()">🔄 PLAY AGAIN</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="changeDirection('up')">⬆️</button>
+
+    <div>
+      <button onclick="changeDirection('left')">⬅️</button>
+      <button onclick="changeDirection('down')">⬇️</button>
+      <button onclick="changeDirection('right')">➡️</button>
+    </div>
+  </div>
+
+  <button class="sound" onclick="toggleSound()" id="soundBtn">
+    🔊 Sound ON
+  </button>
+</div>
+
+  <script>
+    const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const box = 20;
+const size = 400;
+
+let snake;
+let food;
+let direction;
+let nextDirection;
+let score = 0;
+let best = Number(localStorage.getItem("snakeBest")) || 0;
+let game;
+let soundOn = true;
+
+document.getElementById("best").textContent = best;
+
+function startGame() {
+  snake = [
+    { x: 200, y: 200 },
+    { x: 180, y: 200 },
+    { x: 160, y: 200 }
+  ];
+
+  direction = "right";
+  nextDirection = "right";
+  score = 0;
+
+  document.getElementById("score").textContent = score;
+  document.getElementById("gameOver").style.display = "none";
+
+  createFood();
+
+  clearInterval(game);
+  game = setInterval(drawGame, 120);
+}
+
+function createFood() {
+  food = {
+    x: Math.floor(Math.random() * 20) * box,
+    y: Math.floor(Math.random() * 20) * box
+  };
+
+  // Food snake ke upar na aaye
+  for (let part of snake) {
+    if (part.x === food.x && part.y === food.y) {
+      createFood();
+      return;
+    }
+  }
+}
+
+function changeDirection(newDirection) {
+
+  if (newDirection === "up" && direction !== "down") {
+    nextDirection = "up";
+  }
+
+  if (newDirection === "down" && direction !== "up") {
+    nextDirection = "down";
+  }
+
+  if (newDirection === "left" && direction !== "right") {
+    nextDirection = "left";
+  }
+
+  if (newDirection === "right" && direction !== "left") {
+    nextDirection = "right";
+  }
+}
+
+function drawGame() {
+
+  direction = nextDirection;
+
+  let head = {
+    x: snake[0].x,
+    y: snake[0].y
+  };
+
+  if (direction === "up") head.y -= box;
+  if (direction === "down") head.y += box;
+  if (direction === "left") head.x -= box;
+  if (direction === "right") head.x += box;
+
+  // Wall collision
+  if (
+    head.x < 0 ||
+    head.y < 0 ||
+    head.x >= size ||
+    head.y >= size
+  ) {
+    gameOver();
+    return;
+  }
+
+  // Snake collision
+  for (let i = 0; i < snake.length; i++) {
+    if (head.x === snake[i].x && head.y === snake[i].y) {
+      gameOver();
+      return;
+    }
+  }
+
+  snake.unshift(head);
+
+  // Food eaten
+  if (head.x === food.x && head.y === food.y) {
+
+    score++;
+
+    document.getElementById("score").textContent = score;
+
+    if (score > best) {
+      best = score;
+      localStorage.setItem("snakeBest", best);
+      document.getElementById("best").textContent = best;
+    }
+
+    playSound(700);
+
+    createFood();
+
+  } else {
+    snake.pop();
+  }
+
+  // Background
+  ctx.fillStyle = "#181818";
+  ctx.fillRect(0, 0, size, size);
+
+  // Grid
+  ctx.strokeStyle = "#222";
+
+  for (let x = 0; x <= size; x += box) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, size);
+    ctx.stroke();
+  }
+
+  for (let y = 0; y <= size; y += box) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(size, y);
+    ctx.stroke();
+  }
+
+  // Snake
+  snake.forEach((part, index) => {
+
+    ctx.fillStyle = index === 0 ? "#00ff66" : "#00bb55";
+
+    ctx.fillRect(
+      part.x + 1,
+      part.y + 1,
+      box - 2,
+      box - 2
+    );
+  });
+
+  // Snake eyes
+  ctx.fillStyle = "white";
+
+  ctx.fillRect(
+    snake[0].x + 5,
+    snake[0].y + 4,
+    4,
+    4
+  );
+
+  ctx.fillRect(
+    snake[0].x + 12,
+    snake[0].y + 4,
+    4,
+    4
+  );
+
+  // Food
+  ctx.fillStyle = "red";
+
+  ctx.beginPath();
+
+  ctx.arc(
+    food.x + box / 2,
+    food.y + box / 2,
+    7,
+    0,
+    Math.PI * 2
+  );
+
+  ctx.fill();
+}
+
+function gameOver() {
+
+  clearInterval(game);
+
+  document.getElementById("finalScore").textContent = score;
+
+  document.getElementById("gameOver").style.display = "block";
+
+  playSound(150);
+}
+
+function restartGame() {
+  startGame();
+}
+
+function toggleSound() {
+
+  soundOn = !soundOn;
+
+  document.getElementById("soundBtn").textContent =
+    soundOn ? "🔊 Sound ON" : "🔇 Sound OFF";
+}
+
+function playSound(frequency) {
+
+  if (!soundOn) return;
+
+  try {
+
+    const audio = new (window.AudioContext ||
+      window.webkitAudioContext)();
+
+    const oscillator = audio.createOscillator();
+
+    const gain = audio.createGain();
+
+    oscillator.frequency.value = frequency;
+
+    oscillator.connect(gain);
+
+    gain.connect(audio.destination);
+
+    oscillator.start();
+
+    gain.gain.exponentialRampToValueAtTime(
+      0.001,
+      audio.currentTime + 0.15
+    );
+
+    oscillator.stop(audio.currentTime + 0.15);
+
+  } catch (e) {}
+}
+
+// Keyboard controls
+document.addEventListener("keydown", function(e) {
+
+  if (e.key === "ArrowUp") {
+    changeDirection("up");
+  }
+
+  if (e.key === "ArrowDown") {
+    changeDirection("down");
+  }
+
+  if (e.key === "ArrowLeft") {
+    changeDirection("left");
+  }
+
+  if (e.key === "ArrowRight") {
+    changeDirection("right");
+  }
+
+});
+
+// Start game
+startGame();
+  </script>
+</body>
+</html>
